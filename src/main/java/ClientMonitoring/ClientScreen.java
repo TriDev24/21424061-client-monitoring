@@ -18,6 +18,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.time.LocalDateTime;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -195,7 +196,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         try {
             this.clientSocket = new Socket(IP, port);
             
-            ShippingData data = new ShippingData(IP, System.getProperty("user.dir"), this.fileStructure);
+            ShippingData data = new ShippingData(IP, LocalDateTime.now(), System.getProperty("user.dir"), this.fileStructure);
             
             this.sendConnectionDataToServer(data);
             

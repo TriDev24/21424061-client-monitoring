@@ -19,6 +19,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -58,6 +59,7 @@ public class ServerScreen extends javax.swing.JFrame {
     private Socket socket;
     ObjectOutputStream oos;
     ObjectInputStream ois;
+    private int STT = 1;
     
     /**
      * Creates new form ServerScreen
@@ -84,7 +86,7 @@ public class ServerScreen extends javax.swing.JFrame {
 	folderChooserFrame.getContentPane().add(changeDirectoryButton);
         
         // Table
-        String[] header = new String[] { "STT", "CreateAt", "Client IP", "Action", "Default Directory" };
+        String[] header = new String[] { "STT", "Client IP", "Action", "Default Directory", "CreateAt" };
         this.tableModel = new DefaultTableModel();
     	this.tableModel.setColumnIdentifiers(header);
         this.tableSorter = new TableRowSorter<TableModel>(this.tableModel); 
@@ -242,7 +244,7 @@ public class ServerScreen extends javax.swing.JFrame {
                 {null, null, null, null, null}
             },
             new String [] {
-                "STT", "Create At", "Client IP", "Action", "Default Directory"
+                "STT", "Client IP", "Action", "Default Directory", "CreatedAt"
             }
         ));
         jScrollPane5.setViewportView(ClientConnectedListTable);
@@ -366,11 +368,12 @@ public class ServerScreen extends javax.swing.JFrame {
                             
                             ShippingData data = (ShippingData) ois.readObject();
                             FileStructure fileStructure = data.getFileStructure();
+                            LocalDateTime createdAt = data.getCreatedAt();
                             String clientIP = data.getClientIP();
                             String action = data.getMessage();
                             
                             
-                            tableModel.addRow(new Object[] { clientIP, ActionName.Register, action });
+                            tableModel.addRow(new Object[] { STT, clientIP, ActionName.Register, action, createdAt });
                             updateTableModel(ClientConnectedListTable, tableModel);
                             
                             addFileStructure(clientIP, fileStructure);
@@ -447,7 +450,7 @@ public class ServerScreen extends javax.swing.JFrame {
         else {
             try {
                 System.out.println(RowFilter.regexFilter(searchValue));
-                this.tableSorter.setRowFilter(RowFilter.regexFilter(searchValue, 0));
+                this.tableSorter.setRowFilter(RowFilter.regexFilter(searchValue, 1));
             } catch(PatternSyntaxException pse) {
                 System.out.println("Bad regex pattern");
             }
