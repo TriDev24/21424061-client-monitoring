@@ -48,7 +48,7 @@ public class ServerScreen extends javax.swing.JFrame {
     private final String IP = "127.0.0.4";
     private final int port = 1234;
     private Thread threadConnector = null;
-    private HashMap<String, ClientHandler> room;
+    private HashMap<String, ClientHandler> clientInformation;
     private DefaultTableModel tableModel;
     private JTree fileStructureTree;
     private HashMap<String, FileStructure> clientFileStructureContainer;
@@ -75,7 +75,7 @@ public class ServerScreen extends javax.swing.JFrame {
         ServerPortLabel.setText(ServerPortLabel.getText() + " " + this.port);
         
         // Init
-        room = new HashMap<String, ClientHandler>();
+        clientInformation = new HashMap<String, ClientHandler>();
         clientFileStructureContainer = new HashMap<String, FileStructure>();
         folderChooserFrame = new JFrame("Select your folder");
         
@@ -424,6 +424,8 @@ public class ServerScreen extends javax.swing.JFrame {
         try {
             this.closeConnect();
             
+            this.tableModel.setRowCount(0);
+            clientInformation.clear();
             
             oos.writeObject(new ServerAction(ActionName.ServerStopped));
             
@@ -460,7 +462,7 @@ public class ServerScreen extends javax.swing.JFrame {
     private void openCommunication(String clientIP, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
         ClientHandler clientHandler = new ClientHandler(oos, ois, socket, clientIP);
         
-        room.put(clientIP, clientHandler);
+        clientInformation.put(clientIP, clientHandler);
         clientHandler.start();
     }
     
