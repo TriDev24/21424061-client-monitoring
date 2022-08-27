@@ -4,10 +4,38 @@
  */
 package ClientMonitoring;
 
+import Configs.ClientHandler;
+import Configs.ActionName;
+import Configs.FileStructure;
+import Configs.ServerAction;
+import Configs.ShippingData;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.PatternSyntaxException;
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTree;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.JButton;
+import javax.swing.RowFilter;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 
 /**
  *
@@ -16,8 +44,20 @@ import java.util.logging.Logger;
 public class ServerScreen extends javax.swing.JFrame {
 
     public ServerSocket serverSocket;
+    private ArrayList<String> clientIPsConnected;
     private final String IP = "127.0.0.4";
     private final int port = 1234;
+    private Thread threadConnector = null;
+    private HashMap<String, ClientHandler> room;
+    private DefaultTableModel tableModel;
+    private JTree fileStructureTree;
+    private HashMap<String, FileStructure> clientFileStructureContainer;
+    private JFrame folderChooserFrame;
+    private JButton changeDirectoryButton;
+    private TableRowSorter<TableModel> tableSorter;
+    private Socket socket;
+    ObjectOutputStream oos;
+    ObjectInputStream ois;
     
     /**
      * Creates new form ServerScreen
@@ -27,9 +67,46 @@ public class ServerScreen extends javax.swing.JFrame {
         this.bootstrap();
     }
     
+    
+    
     private void bootstrap() {
+        // Set Label
         ServerIPLabel.setText(ServerIPLabel.getText() + " " + this.IP);
         ServerPortLabel.setText(ServerPortLabel.getText() + " " + this.port);
+        
+        // Init
+        room = new HashMap<String, ClientHandler>();
+        clientFileStructureContainer = new HashMap<String, FileStructure>();
+        folderChooserFrame = new JFrame("Select your folder");
+        
+        changeDirectoryButton = new JButton("Change");
+	changeDirectoryButton.setBounds(300, 0, 0, 10);
+	folderChooserFrame.getContentPane().add(changeDirectoryButton);
+        
+        // Table
+        String[] header = new String[] { "STT", "CreateAt", "Client IP", "Action", "Default Directory" };
+        this.tableModel = new DefaultTableModel();
+    	this.tableModel.setColumnIdentifiers(header);
+        this.tableSorter = new TableRowSorter<TableModel>(this.tableModel); 
+        ClientConnectedListTable.setRowSorter(this.tableSorter);
+        
+        
+        // Event handlers
+        eventHandlers();
+    }
+    
+    private void eventHandlers() {
+        BrowseFileClientChangeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedClient = 
+                        ClientConnectedListTable.getValueAt(
+                                ClientConnectedListTable.getSelectedRow(), 0
+                        ).toString();
+                
+                showFileStructure(selectedClient);
+            }
+	});
     }
     
     public String getIP() {
@@ -55,6 +132,11 @@ public class ServerScreen extends javax.swing.JFrame {
         jTable2 = new javax.swing.JTable();
         jScrollPane1 = new javax.swing.JScrollPane();
         jList1 = new javax.swing.JList<>();
+        SearchButton = new javax.swing.JButton();
+        jScrollPane6 = new javax.swing.JScrollPane();
+        jTree1 = new javax.swing.JTree();
+        FileStructureTree = new javax.swing.JScrollPane();
+        jTree3 = new javax.swing.JTree();
         ClearAllNotificationButton = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         ServerIPLabel = new javax.swing.JLabel();
@@ -69,6 +151,9 @@ public class ServerScreen extends javax.swing.JFrame {
         RemoveClientButton1 = new javax.swing.JButton();
         StopServerButton = new javax.swing.JButton();
         ServerConnectionStatusLabel = new javax.swing.JLabel();
+        ClientIPSearchInputField = new javax.swing.JTextField();
+        SearchClientIPButton = new javax.swing.JButton();
+        BrowseFileClientChangeButton = new javax.swing.JButton();
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -102,6 +187,13 @@ public class ServerScreen extends javax.swing.JFrame {
             public String getElementAt(int i) { return strings[i]; }
         });
         jScrollPane1.setViewportView(jList1);
+
+        SearchButton.setText("Search");
+
+        jScrollPane6.setEnabled(false);
+        jScrollPane6.setViewportView(jTree1);
+
+        FileStructureTree.setViewportView(jTree3);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -144,13 +236,13 @@ public class ServerScreen extends javax.swing.JFrame {
 
         ClientConnectedListTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
+                "STT", "Create At", "Client IP", "Action", "Default Directory"
             }
         ));
         jScrollPane5.setViewportView(ClientConnectedListTable);
@@ -166,14 +258,19 @@ public class ServerScreen extends javax.swing.JFrame {
 
         ServerConnectionStatusLabel.setText("Server is offline");
 
+        SearchClientIPButton.setText("Search");
+        SearchClientIPButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                SearchClientIPButtonActionPerformed(evt);
+            }
+        });
+
+        BrowseFileClientChangeButton.setText("Browse");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(202, 202, 202)
-                .addComponent(jLabel3)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
@@ -195,15 +292,24 @@ public class ServerScreen extends javax.swing.JFrame {
                             .addComponent(jScrollPane4)
                             .addComponent(jScrollPane5, javax.swing.GroupLayout.Alignment.TRAILING)
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGap(0, 15, Short.MAX_VALUE)
+                                .addGap(0, 0, Short.MAX_VALUE)
+                                .addComponent(StartServerButton)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(StopServerButton)
+                                .addGap(98, 98, 98)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(ClearAllNotificationButton, javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(RemoveClientButton1, javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel3)
                                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                        .addComponent(StartServerButton)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(StopServerButton)
-                                        .addGap(340, 340, 340)))))))
+                                        .addGap(179, 179, 179)
+                                        .addComponent(ClearAllNotificationButton))))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addComponent(ClientIPSearchInputField, javax.swing.GroupLayout.PREFERRED_SIZE, 186, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(SearchClientIPButton)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(BrowseFileClientChangeButton)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(RemoveClientButton1)))))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -224,7 +330,11 @@ public class ServerScreen extends javax.swing.JFrame {
                 .addGap(10, 10, 10)
                 .addComponent(jLabel2)
                 .addGap(18, 18, 18)
-                .addComponent(RemoveClientButton1)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(RemoveClientButton1)
+                    .addComponent(ClientIPSearchInputField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(SearchClientIPButton)
+                    .addComponent(BrowseFileClientChangeButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 171, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
@@ -241,7 +351,43 @@ public class ServerScreen extends javax.swing.JFrame {
 
     private void StartServerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_StartServerButtonActionPerformed
         try {
-            serverSocket = new ServerSocket(this.port);
+            serverSocket = new ServerSocket(port);
+            
+            Runnable socketRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    //create the socket server object
+                    try {
+                        while (true) {
+                            socket = serverSocket.accept();
+                            
+                            oos = new ObjectOutputStream(socket.getOutputStream());
+                            ois = new ObjectInputStream(socket.getInputStream());
+                            
+                            ShippingData data = (ShippingData) ois.readObject();
+                            FileStructure fileStructure = data.getFileStructure();
+                            String clientIP = data.getClientIP();
+                            String action = data.getMessage();
+                            
+                            
+                            tableModel.addRow(new Object[] { clientIP, ActionName.Register, action });
+                            updateTableModel(ClientConnectedListTable, tableModel);
+                            
+                            addFileStructure(clientIP, fileStructure);
+                            
+                            oos.writeObject(new ServerAction(ActionName.ServerAccepted));
+                            openCommunication(clientIP, socket, ois, oos);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (ClassNotFoundException ex) {
+                        Logger.getLogger(ServerScreen.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            };
+            
+            this.threadConnector = new Thread(socketRunnable);
+            this.threadConnector.start();
             
             ServerConnectionStatusLabel.setText("Server is on running...");
             StartServerButton.setEnabled(false);
@@ -251,13 +397,35 @@ public class ServerScreen extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_StartServerButtonActionPerformed
 
+    private void addFileStructure(String clientIP, FileStructure fileStructure) {
+        clientFileStructureContainer.put(clientIP, fileStructure);
+    }
+    
+    private void showFileStructure(String clientIP) {
+        fileStructureTree = new JTree(clientFileStructureContainer.get(clientIP));
+	JScrollPane scrollPopup = new JScrollPane(fileStructureTree);
+	    
+        
+	folderChooserFrame.getContentPane().add(scrollPopup);
+        folderChooserFrame.setSize(300,500);
+	folderChooserFrame.setVisible(true);
+    }
+    
+    private void updateTableModel(JTable table, DefaultTableModel newModel) {
+        newModel.fireTableDataChanged();
+        table.setModel(newModel);
+    }
+    
     private void ClearAllNotificationButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ClearAllNotificationButtonActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_ClearAllNotificationButtonActionPerformed
 
     private void StopServerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_StopServerButtonActionPerformed
         try {
-            serverSocket.close();
+            this.closeConnect();
+            
+            
+            oos.writeObject(new ServerAction(ActionName.ServerStopped));
             
             ServerConnectionStatusLabel.setText("Server has stopped...");
             StartServerButton.setEnabled(true);
@@ -268,10 +436,42 @@ public class ServerScreen extends javax.swing.JFrame {
         
     }//GEN-LAST:event_StopServerButtonActionPerformed
 
+    private void SearchClientIPButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SearchClientIPButtonActionPerformed
+        String searchValue = ClientIPSearchInputField.getText();
+        
+        if(searchValue.length() == 0) {
+            this.tableSorter.setRowFilter(null);
+        }
+        else {
+            try {
+                System.out.println(RowFilter.regexFilter(searchValue));
+                this.tableSorter.setRowFilter(RowFilter.regexFilter(searchValue, 0));
+            } catch(PatternSyntaxException pse) {
+                System.out.println("Bad regex pattern");
+            }
+        }
+    }//GEN-LAST:event_SearchClientIPButtonActionPerformed
+
+    private void closeConnect() throws IOException {
+        this.threadConnector.interrupt();
+        serverSocket.close();
+    }
+    
+    private void openCommunication(String clientIP, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
+        ClientHandler clientHandler = new ClientHandler(oos, ois, socket, clientIP);
+        
+        room.put(clientIP, clientHandler);
+        clientHandler.start();
+    }
+    
+    
+    
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+		
+        
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -304,10 +504,15 @@ public class ServerScreen extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton BrowseFileClientChangeButton;
     private javax.swing.JButton ClearAllNotificationButton;
     private javax.swing.JTable ClientConnectedListTable;
     private javax.swing.JTable ClientDriectoryNotificationTable;
+    private javax.swing.JTextField ClientIPSearchInputField;
+    private javax.swing.JScrollPane FileStructureTree;
     private javax.swing.JButton RemoveClientButton1;
+    private javax.swing.JButton SearchButton;
+    private javax.swing.JButton SearchClientIPButton;
     private javax.swing.JLabel ServerConnectionStatusLabel;
     private javax.swing.JLabel ServerIPLabel;
     private javax.swing.JLabel ServerPortLabel;
@@ -322,7 +527,10 @@ public class ServerScreen extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane5;
+    private javax.swing.JScrollPane jScrollPane6;
     private javax.swing.JTable jTable1;
     private javax.swing.JTable jTable2;
+    private javax.swing.JTree jTree1;
+    private javax.swing.JTree jTree3;
     // End of variables declaration//GEN-END:variables
 }

@@ -4,9 +4,19 @@
  */
 package ClientMonitoring;
 
+import Configs.ActionName;
+import Configs.FileStructure;
+import Configs.ServerAction;
+import Configs.ShippingData;
+import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,10 +25,14 @@ import java.util.logging.Logger;
  *
  * @author bin
  */
-public class ClientScreen extends javax.swing.JFrame {
+public class ClientScreen extends javax.swing.JFrame implements Runnable {
     private String IP;
     private ServerScreen server;
     private Socket clientSocket;
+    private ObjectInputStream ois;
+    private ObjectOutputStream oos;
+    private Thread threadReceive;
+    private FileStructure fileStructure;
     
     /**
      * Creates new form ClientScreen
@@ -35,7 +49,10 @@ public class ClientScreen extends javax.swing.JFrame {
             ClientIPLabel.setText(ClientIPLabel.getText() + " " + this.IP);
             
             // Create Server Instance
-            this.server = new ServerScreen();         
+            this.server = new ServerScreen(); 
+            
+            // Create File structure
+            fileStructure = new FileStructure(new File(System.getProperty("user.home")));
         } catch (UnknownHostException ex) {
             Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -158,24 +175,82 @@ public class ClientScreen extends javax.swing.JFrame {
     }//GEN-LAST:event_ServerIPTextInputActionPerformed
 
     private void ConnectServerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ConnectServerButtonActionPerformed
-        try {
-            String serverIPInput = ServerIPTextInput.getText();
-            String serverPortInput = ServerPortTextInput.getText();
-            boolean isCorrectServerConfigs = 
-                    serverIPInput.equals(server.getIP()) && Integer.parseInt(serverPortInput) == server.getPort();
-
-            System.out.println("isCorrectServerConfigs" + isCorrectServerConfigs);
-
-            if(isCorrectServerConfigs) {
-                clientSocket = new Socket(this.IP, server.getPort());
-                
-                ConnectServerStatusText.setText("You have connected to Server");
+        String serverIPInput = ServerIPTextInput.getText().trim();
+        String serverPortInput = ServerPortTextInput.getText().trim();
+        int parsedPortInput = Integer.parseInt(serverPortInput);
+        boolean isCorrectServerConfigs =
+                serverIPInput.equals(server.getIP()) && parsedPortInput == server.getPort();
+        
+        if(isCorrectServerConfigs) {
+            try {
+                this.connectToServer(this.IP, parsedPortInput);
+                this.receiveConnectStatusFromServer();
+            } catch (IOException ex) {
+                Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
             }
-        } catch (IOException ex) {
-            Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_ConnectServerButtonActionPerformed
 
+    private void connectToServer(String IP, int port) {
+        try {
+            this.clientSocket = new Socket(IP, port);
+            
+            ShippingData data = new ShippingData(IP, System.getProperty("user.dir"), this.fileStructure);
+            
+            this.sendConnectionDataToServer(data);
+            
+            
+        } catch (IOException ex) {
+            Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void receiveConnectStatusFromServer() throws IOException {
+        if (ois == null) {
+            ois = new ObjectInputStream(this.clientSocket.getInputStream());
+	}
+        
+        this.threadReceive = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        ServerAction serverAction = (ServerAction) ois.readObject();
+                        String command = serverAction.getAction();
+                        
+                        switch(command) {
+                            case ActionName.ServerAccepted: {
+                                ConnectServerStatusText.setText("You have connected to Server");
+                                break;
+                            }
+                            case ActionName.ServerStopped: {
+                                ConnectServerStatusText.setText("This server has been stopped");
+                                break;
+                            }
+                        }
+                       
+                    } catch (IOException ex) {
+                        Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (ClassNotFoundException ex) {
+                        Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        });
+        
+        this.threadReceive.start();
+    }
+    
+    private void sendConnectionDataToServer(ShippingData data) throws IOException {
+		
+        //write to socket using ObjectOutputStream
+        if (oos == null) {
+            oos = new ObjectOutputStream(this.clientSocket.getOutputStream());
+        }
+		
+        oos.writeObject(data);
+    }
+    
     /**
      * @param args the command line arguments
      */
@@ -223,4 +298,9 @@ public class ClientScreen extends javax.swing.JFrame {
     private javax.swing.JTextField ServerPortTextInput;
     private javax.swing.JLabel jLabel1;
     // End of variables declaration//GEN-END:variables
+
+    @Override
+    public void run() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
 }
