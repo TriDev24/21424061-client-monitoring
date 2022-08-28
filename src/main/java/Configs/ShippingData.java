@@ -17,18 +17,24 @@ public class ShippingData implements Serializable {
     private String action;
     private FileStructure fileStructure;
     private String defaultDirectory;
+    private String description;
     
     
-    public ShippingData(String clientIP, String action, LocalDateTime createdAt, String defaultDirectory, FileStructure fileStructure) {
+    public ShippingData(String clientIP, String action, LocalDateTime createdAt, String defaultDirectory, FileStructure fileStructure, String description) {
         this.clientIP = clientIP;
         this.action = action;
         this.createdAt = createdAt;
         this.defaultDirectory = defaultDirectory;
         this.fileStructure = fileStructure;
+        this.description = description;
     }
     
     public String getClientIP() {
         return this.clientIP;
+    }
+    
+    public String getDescription() {
+        return this.description;
     }
     
     public LocalDateTime getCreatedAt() {

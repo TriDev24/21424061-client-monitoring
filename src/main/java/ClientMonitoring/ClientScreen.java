@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -52,6 +53,8 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     private Path path;
     private File fileWatch;
     private HashMap<WatchKey, Path> watchKeyContainer;
+    private DefaultTableModel tableModel;
+    private int counter = 1;
 
     /**
      * Creates new form ClientScreen
@@ -82,6 +85,12 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
             fileWatch = new File(pathToWatching);
 
             watchKeyContainer = new HashMap<WatchKey, Path>();
+            
+            // Table
+            String[] header = new String[]{"STT", "Action", "Change Time", "Description"};
+            this.tableModel = new DefaultTableModel();
+            this.tableModel.setColumnIdentifiers(header);
+            ChangeFolderTable.setModel(this.tableModel);
 
             // Watch Service
             watchService = FileSystems.getDefault().newWatchService();
@@ -99,6 +108,8 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
         ClientIPLabel = new javax.swing.JLabel();
         ClientInformationTitle = new javax.swing.JLabel();
         ClientPortLabel = new javax.swing.JLabel();
@@ -109,6 +120,22 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         ServerPortTextInput = new javax.swing.JTextField();
         ConnectServerButton = new javax.swing.JButton();
         ConnectServerStatusText = new javax.swing.JLabel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        ChangeFolderTable = new javax.swing.JTable();
+        DisconnectButton = new javax.swing.JButton();
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane1.setViewportView(jTable1);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -141,6 +168,26 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
             }
         });
 
+        ChangeFolderTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "STT", "Action", "Change Time", "Description"
+            }
+        ));
+        jScrollPane2.setViewportView(ChangeFolderTable);
+
+        DisconnectButton.setText("Disconnect");
+        DisconnectButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                DisconnectButtonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -152,47 +199,57 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(ClientPortLabel)
                             .addComponent(ClientInformationTitle)
-                            .addComponent(ClientIPLabel)))
+                            .addComponent(ClientIPLabel))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addComponent(ServerPortTextInput, javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
+                                .addGap(62, 62, 62)
+                                .addComponent(jLabel1))
+                            .addComponent(ServerIPText, javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(ServerIPText1, javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(ServerIPTextInput, javax.swing.GroupLayout.PREFERRED_SIZE, 219, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
+                                .addComponent(ConnectServerButton, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(DisconnectButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(ConnectServerStatusText))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(239, 239, 239)
-                        .addComponent(jLabel1))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(177, 177, 177)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(ServerIPText)
-                            .addComponent(ServerIPTextInput)
-                            .addComponent(ServerIPText1)
-                            .addComponent(ServerPortTextInput)
-                            .addComponent(ConnectServerButton, javax.swing.GroupLayout.PREFERRED_SIZE, 219, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(260, 260, 260)
-                        .addComponent(ConnectServerStatusText)))
-                .addContainerGap(205, Short.MAX_VALUE))
+                        .addContainerGap()
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 632, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(20, 20, 20)
-                .addComponent(ClientInformationTitle)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(ClientIPLabel)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(ClientPortLabel)
-                .addGap(30, 30, 30)
-                .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(ConnectServerStatusText)
-                .addGap(3, 3, 3)
-                .addComponent(ServerIPText)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(ServerIPTextInput, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(ServerIPText1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(ServerPortTextInput, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addGap(36, 36, 36)
+                        .addComponent(ServerIPText)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(ServerIPTextInput, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(ServerIPText1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(ServerPortTextInput, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(ClientInformationTitle)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(ClientIPLabel)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(ClientPortLabel)
+                        .addGap(53, 53, 53)
+                        .addComponent(ConnectServerStatusText)))
                 .addGap(18, 18, 18)
-                .addComponent(ConnectServerButton)
-                .addContainerGap(82, Short.MAX_VALUE))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(ConnectServerButton, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(DisconnectButton, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 55, Short.MAX_VALUE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 324, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
         );
 
         pack();
@@ -224,26 +281,24 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         }
     }//GEN-LAST:event_ConnectServerButtonActionPerformed
 
-    private void alo() {
-
-    }
+    private void DisconnectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DisconnectButtonActionPerformed
+        
+    }//GEN-LAST:event_DisconnectButtonActionPerformed
 
     private void registerWatchingFolder(Path path) {
         try {
             WatchKey keyRegisted = path.register(this.watchService,
                     StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_MODIFY,
-                    StandardWatchEventKinds.ENTRY_DELETE);
+                        StandardWatchEventKinds.ENTRY_MODIFY,
+                            StandardWatchEventKinds.ENTRY_DELETE);
 
             watchKeyContainer.put(keyRegisted, path);
-
-            System.out.println("Hello");
         } catch (IOException ex) {
             Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    private void processFileFolderChange() throws IOException {
+    private void listenFileFolderChanges() throws IOException {
         Thread runner = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -269,12 +324,16 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                             WatchEvent.Kind<?> kind = event.kind();
                             WatchEvent<Path> ev = (WatchEvent<Path>) event;
                             Path fileName = ev.context();
+                            
                             if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-                                System.out.printf("A new file %s was created.%n", fileName.getFileName());
+                                sendFolderChangeAction(ActionName.Create, "A new file " + fileName.getFileName() + " was created: ");
+                                writeChangeToTable(ActionName.Create, "A new file " + fileName.getFileName() + " was created: ");
                             } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-                                System.out.printf("A file %s was modified.%n", fileName.getFileName());
+                                sendFolderChangeAction(ActionName.Modify, "A new file " + fileName.getFileName() + " was modified: ");
+                                writeChangeToTable(ActionName.Modify, "A new file " + fileName.getFileName() + " was modified: ");
                             } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-                                System.out.printf("A file %s was deleted.%n", fileName.getFileName());
+                                sendFolderChangeAction(ActionName.Delete, "A new file " + fileName.getFileName() + " was deleted: " );
+                                writeChangeToTable(ActionName.Delete, "A new file " + fileName.getFileName() + " was deleted: " );
                             }
                         }
                         boolean valid = key.reset();
@@ -289,23 +348,12 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         });
         runner.start();
     }
-
-    private void walkAndRegisterDirectories(final Path start) throws IOException {
-        // register directory and sub-directories
-        Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                registerWatchingFolder(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-    }
-
+    
     private void connectToServer(String IP, int port) {
         try {
             this.clientSocket = new Socket(IP, port);
 
-            ShippingData data = new ShippingData(IP, ActionName.Register, LocalDateTime.now(), this.pathToWatching, this.fileStructure);
+            ShippingData data = new ShippingData(IP, ActionName.Register, LocalDateTime.now(), this.pathToWatching, this.fileStructure, "");
 
             this.sendConnectionDataToServer(data);
         } catch (IOException ex) {
@@ -313,6 +361,11 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         }
     }
 
+    private void writeChangeToTable(String action, String description) {
+        this.tableModel.addRow(new Object[] { counter++, action, LocalDateTime.now(), description});
+        this.tableModel.fireTableDataChanged();
+    }
+    
     private void receiveConnectStatusFromServer() throws IOException {
         if (ois == null) {
             ois = new ObjectInputStream(this.clientSocket.getInputStream());
@@ -329,7 +382,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                         switch (command) {
                             case ActionName.ServerAccepted: {
                                 ConnectServerStatusText.setText("You have connected to Server");
-                                processFileFolderChange();
+                                listenFileFolderChanges();
                                 break;
                             }
                             case ActionName.ServerStopped: {
@@ -349,10 +402,20 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
 
         this.threadReceive.start();
     }
+    
+    private void sendFolderChangeAction(String action, String description) throws IOException {
+        if (oos == null) {
+            oos = new ObjectOutputStream(this.clientSocket.getOutputStream());
+        }
+        
+        ShippingData data = new ShippingData(this.IP, action, LocalDateTime.now(), null, null, description);
+        
+        System.out.println("data: " + data);
+        oos.writeObject(data);
+    }
 
     private void sendConnectionDataToServer(ShippingData data) throws IOException {
 
-        //write to socket using ObjectOutputStream
         if (oos == null) {
             oos = new ObjectOutputStream(this.clientSocket.getOutputStream());
         }
@@ -396,16 +459,21 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JTable ChangeFolderTable;
     private javax.swing.JLabel ClientIPLabel;
     private javax.swing.JLabel ClientInformationTitle;
     private javax.swing.JLabel ClientPortLabel;
     private javax.swing.JButton ConnectServerButton;
     private javax.swing.JLabel ConnectServerStatusText;
+    private javax.swing.JButton DisconnectButton;
     private javax.swing.JLabel ServerIPText;
     private javax.swing.JLabel ServerIPText1;
     private javax.swing.JTextField ServerIPTextInput;
     private javax.swing.JTextField ServerPortTextInput;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JTable jTable1;
     // End of variables declaration//GEN-END:variables
 
     @Override

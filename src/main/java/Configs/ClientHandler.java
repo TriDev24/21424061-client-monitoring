@@ -22,15 +22,18 @@ public class ClientHandler extends Thread {
     ObjectOutputStream oos;
     ObjectInputStream ois;
     Socket socket;
-    String clientAction;
+    String action;
     FileStructure fileStructure;
+    IHandler handler;
+    
 
-    public ClientHandler(ObjectOutputStream oos, ObjectInputStream ois, Socket socket, String clientAction) {
+    public ClientHandler(ObjectOutputStream oos, ObjectInputStream ois, Socket socket, String action, IHandler handler) {
         super();
         this.oos = oos;
         this.ois = ois;
         this.socket = socket;
-        this.clientAction = clientAction;
+        this.action = action;
+        this.handler = handler;
     }
 
     @Override
@@ -38,7 +41,7 @@ public class ClientHandler extends Thread {
 
         try {
             ShippingData data = (ShippingData) ois.readObject();
-            processClientData(data);
+            handleProcess(data);
         } catch (IOException ex) {
             Logger.getLogger(ClientHandler.class.getName()).log(Level.SEVERE, null, ex);
         } catch (ClassNotFoundException ex) {
@@ -46,8 +49,8 @@ public class ClientHandler extends Thread {
         }
     }
 
-    private void processClientData(ShippingData data) {
-
+    private void handleProcess(ShippingData data) {
+        this.handler.handleProcess(data);
     }
 
     public void changeFolderPath(String path) {

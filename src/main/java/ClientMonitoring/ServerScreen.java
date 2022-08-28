@@ -7,6 +7,7 @@ package ClientMonitoring;
 import Configs.ClientHandler;
 import Configs.ActionName;
 import Configs.FileStructure;
+import Configs.IHandler;
 import Configs.ServerRequestPackage;
 import Configs.ShippingData;
 import java.awt.event.ActionEvent;
@@ -62,6 +63,7 @@ public class ServerScreen extends javax.swing.JFrame {
     private Thread threadConnector = null;
     private HashMap<String, ClientHandler> clientInformation;
     private DefaultTableModel tableModel;
+    private DefaultTableModel notificationTableModel;
     private JTree fileStructureTree;
     private HashMap<String, FileStructure> clientFileStructureContainer;
     private JFrame folderChooserFrame;
@@ -71,6 +73,7 @@ public class ServerScreen extends javax.swing.JFrame {
     ObjectOutputStream oos;
     ObjectInputStream ois;
     private int STT = 1;
+    private int notificationCounter = 1;
 
     /**
      * Creates new form ServerScreen
@@ -103,6 +106,12 @@ public class ServerScreen extends javax.swing.JFrame {
             this.tableModel.setColumnIdentifiers(header);
             this.tableSorter = new TableRowSorter<TableModel>(this.tableModel);
             ClientConnectedListTable.setRowSorter(this.tableSorter);
+            
+            String[] notificationTableHeader = new String[]{"STT", "Client IP", "Time", "Action", "Description"};
+            this.notificationTableModel = new DefaultTableModel();
+            this.notificationTableModel.setColumnIdentifiers(notificationTableHeader);
+            ClientDirectoryNotificationTable.setModel(notificationTableModel);
+            
             // Event handlers
             eventHandlers();
         } catch (UnknownHostException ex) {
@@ -130,9 +139,11 @@ public class ServerScreen extends javax.swing.JFrame {
                 if (hasSelectedItem) {
                     String path = fileStructureTree.getSelectionPath().getLastPathComponent().toString();
 
+                    System.out.println("path" + path);
                     String selectedRow = ClientConnectedListTable.getValueAt(ClientConnectedListTable.getSelectedRow(), 1).toString();
                     clientInformation.get(selectedRow).changeFolderPath(path);
                     folderChooserFrame.setVisible(false);
+                    updateTableModel(ClientConnectedListTable, tableModel);
                 }
             }
         });
@@ -173,7 +184,7 @@ public class ServerScreen extends javax.swing.JFrame {
         StartServerButton = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
         jScrollPane4 = new javax.swing.JScrollPane();
-        ClientDriectoryNotificationTable = new javax.swing.JTable();
+        ClientDirectoryNotificationTable = new javax.swing.JTable();
         jLabel3 = new javax.swing.JLabel();
         jScrollPane5 = new javax.swing.JScrollPane();
         ClientConnectedListTable = new javax.swing.JTable();
@@ -248,18 +259,18 @@ public class ServerScreen extends javax.swing.JFrame {
 
         jLabel2.setText("Client Connected List");
 
-        ClientDriectoryNotificationTable.setModel(new javax.swing.table.DefaultTableModel(
+        ClientDirectoryNotificationTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
+                "STT", "Client IP", "Time", "Action", "Description"
             }
         ));
-        jScrollPane4.setViewportView(ClientDriectoryNotificationTable);
+        jScrollPane4.setViewportView(ClientDirectoryNotificationTable);
 
         jLabel3.setText("Client Directory Notifications");
 
@@ -468,7 +479,6 @@ public class ServerScreen extends javax.swing.JFrame {
             this.tableSorter.setRowFilter(null);
         } else {
             try {
-                System.out.println(RowFilter.regexFilter(searchValue));
                 this.tableSorter.setRowFilter(RowFilter.regexFilter(searchValue, 1));
             } catch (PatternSyntaxException pse) {
                 System.out.println("Bad regex pattern");
@@ -482,10 +492,23 @@ public class ServerScreen extends javax.swing.JFrame {
     }
 
     private void openCommunication(String clientIP, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
-        ClientHandler clientHandler = new ClientHandler(oos, ois, socket, clientIP);
-
+        ClientHandler clientHandler = new ClientHandler(oos, ois, socket, clientIP, new IHandler() {
+            @Override
+            public void handleProcess(ShippingData data) {
+                writeToNotificationModel(data);
+            }
+        });
+        
         clientInformation.put(clientIP, clientHandler);
         clientHandler.start();
+    }
+    
+    private void writeToNotificationModel(ShippingData data) {
+        String action = data.getAction();
+        String clientIP = data.getClientIP();
+        String description = data.getDescription();
+        
+        this.notificationTableModel.addRow(new Object[] {this.notificationCounter++, clientIP, LocalDateTime.now(), action, description});
     }
 
     /**
@@ -528,7 +551,7 @@ public class ServerScreen extends javax.swing.JFrame {
     private javax.swing.JButton BrowseFileClientChangeButton;
     private javax.swing.JButton ClearAllNotificationButton;
     private javax.swing.JTable ClientConnectedListTable;
-    private javax.swing.JTable ClientDriectoryNotificationTable;
+    private javax.swing.JTable ClientDirectoryNotificationTable;
     private javax.swing.JTextField ClientIPSearchInputField;
     private javax.swing.JScrollPane FileStructureTree;
     private javax.swing.JButton RemoveClientButton1;
