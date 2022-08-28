@@ -17,7 +17,7 @@ import java.util.logging.Logger;
  *
  * @author bin
  */
-public class ClientHandler extends Thread {
+public class Handler extends Thread {
 
     ObjectOutputStream oos;
     ObjectInputStream ois;
@@ -27,7 +27,7 @@ public class ClientHandler extends Thread {
     IHandler handler;
     
 
-    public ClientHandler(ObjectOutputStream oos, ObjectInputStream ois, Socket socket, String action, IHandler handler) {
+    public Handler(ObjectOutputStream oos, ObjectInputStream ois, Socket socket, String action, IHandler handler) {
         super();
         this.oos = oos;
         this.ois = ois;
@@ -43,9 +43,9 @@ public class ClientHandler extends Thread {
             ShippingData data = (ShippingData) ois.readObject();
             handleProcess(data);
         } catch (IOException ex) {
-            Logger.getLogger(ClientHandler.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Handler.class.getName()).log(Level.SEVERE, null, ex);
         } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ClientHandler.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Handler.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 

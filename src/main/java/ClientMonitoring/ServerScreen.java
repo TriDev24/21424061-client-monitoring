@@ -4,7 +4,7 @@
  */
 package ClientMonitoring;
 
-import Configs.ClientHandler;
+import Configs.Handler;
 import Configs.ActionName;
 import Configs.FileStructure;
 import Configs.IHandler;
@@ -63,7 +63,7 @@ public class ServerScreen extends javax.swing.JFrame {
     private String IP;
     private int port;
     private Thread threadConnector = null;
-    private HashMap<String, ClientHandler> clientInformation;
+    private HashMap<String, Handler> clientInformation;
     private DefaultTableModel tableModel;
     private DefaultTableModel notificationTableModel;
     private JTree fileStructureTree;
@@ -96,7 +96,7 @@ public class ServerScreen extends javax.swing.JFrame {
             ServerIPLabel.setText(ServerIPLabel.getText() + " " + this.IP);
             ServerPortLabel.setText(ServerPortLabel.getText() + " " + this.port);
             // Init
-            clientInformation = new HashMap<String, ClientHandler>();
+            clientInformation = new HashMap<String, Handler>();
             clientFileStructureContainer = new HashMap<String, FileStructure>();
             folderChooserFrame = new JFrame("Select your folder");
             changeDirectoryButton = new JButton("Change Directory");
@@ -499,7 +499,7 @@ public class ServerScreen extends javax.swing.JFrame {
     }
 
     private void openCommunication(String clientIP, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
-        ClientHandler clientHandler = new ClientHandler(oos, ois, socket, clientIP, new IHandler() {
+        Handler clientHandler = new Handler(oos, ois, socket, clientIP, new IHandler() {
             @Override
             public void handleProcess(ShippingData data) {
                 String action = data.getAction();
