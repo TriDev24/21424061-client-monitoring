@@ -284,7 +284,17 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     }//GEN-LAST:event_ConnectServerButtonActionPerformed
 
     private void DisconnectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DisconnectButtonActionPerformed
-        
+        try {
+            this.threadReceive.interrupt();
+            
+            this.oos = null;
+            this.ois = null;
+            ConnectServerButton.setEnabled(true);
+            DisconnectButton.setEnabled(false);
+            this.sendData(ActionName.Leave, "");
+        } catch (IOException ex) {
+            Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }//GEN-LAST:event_DisconnectButtonActionPerformed
 
     private void registerWatchingFolder(Path path) {
@@ -329,17 +339,17 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                             
                             if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
                                 System.out.println("Create");
-                                sendFolderChangeAction(ActionName.Create, "A new file " + fileName.getFileName() + " was created: ");
+                                sendData(ActionName.Create, "A new file " + fileName.getFileName() + " was created: ");
                                 writeChangeToTable(ActionName.Create, "A new file " + fileName.getFileName() + " was created: ");
                             } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
                                 System.out.println("Modify");
 
-                                sendFolderChangeAction(ActionName.Modify, "A new file " + fileName.getFileName() + " was modified: ");
+                                sendData(ActionName.Modify, "A new file " + fileName.getFileName() + " was modified: ");
                                 writeChangeToTable(ActionName.Modify, "A new file " + fileName.getFileName() + " was modified: ");
                             } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
                                 System.out.println("Delete");
 
-                                sendFolderChangeAction(ActionName.Delete, "A new file " + fileName.getFileName() + " was deleted: " );
+                                sendData(ActionName.Delete, "A new file " + fileName.getFileName() + " was deleted: " );
                                 writeChangeToTable(ActionName.Delete, "A new file " + fileName.getFileName() + " was deleted: " );
                             }
                         }
@@ -410,7 +420,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         this.threadReceive.start();
     }
     
-    private void sendFolderChangeAction(String action, String description) throws IOException {
+    private void sendData(String action, String description) throws IOException {
         if (oos == null) {
             oos = new ObjectOutputStream(this.clientSocket.getOutputStream());
         }

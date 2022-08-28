@@ -10,8 +10,8 @@ package Configs;
  */
 public class ActionName {
 
-    public final static String Register = "REGISTER";
-    public final static String Leave = "LEAVE";
+    public final static String Register = "LOGIN";
+    public final static String Leave = "LOGOUT";
     public final static String ChangeClientFolder = "CHANGE_CLIENT_FOLDER";
     public final static String Create = "CREATE";
     public final static String Rename = "RENAME";

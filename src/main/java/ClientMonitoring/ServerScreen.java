@@ -509,7 +509,14 @@ public class ServerScreen extends javax.swing.JFrame {
         ClientHandler clientHandler = new ClientHandler(oos, ois, socket, clientIP, new IHandler() {
             @Override
             public void handleProcess(ShippingData data) {
-                writeToNotificationModel(data);
+                String action = data.getAction();
+                if(action == ActionName.Leave) {
+                    addDataToConnectedClientTable(data);
+                }
+                else {
+                    writeToNotificationModel(data);
+                }
+                
             }
         });
         
@@ -523,6 +530,15 @@ public class ServerScreen extends javax.swing.JFrame {
         String description = data.getDescription();
         
         this.notificationTableModel.addRow(new Object[] {this.notificationCounter++, clientIP, LocalDateTime.now(), action, description});
+    }
+    
+    private void addDataToConnectedClientTable(ShippingData data) {
+        String clientIP = data.getClientIP();
+        String action = data.getAction();
+        String defaultDirectory = data.getDefaultDirectory();
+        LocalDateTime createAt = data.getCreatedAt();
+        
+        tableModel.addRow(new Object[] {STT++, clientIP, action, defaultDirectory, createAt});
     }
 
     /**
