@@ -19,13 +19,18 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,11 +46,11 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     private ObjectOutputStream oos;
     private Thread threadReceive;
     private FileStructure fileStructure;
-    private WatchService watcher;
-    WatchService watchService;
+    private WatchService watchService;
     private String pathToWatching;
     private Path path;
-    WatchKey watchKey;
+    private WatchKey watchKey;
+    private HashMap<WatchKey, Path> watchKeyContainer;
     
     /**
      * Creates new form ClientScreen
@@ -70,9 +75,14 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
             
             // Create File structure
             pathToWatching = System.getProperty("user.dir");
+            
             fileStructure = new FileStructure(new File(System.getProperty("user.home")));
             path = Paths.get(pathToWatching);
+            System.out.println("path" + path);
+
             watchKey = null;
+            watchKeyContainer = new HashMap<WatchKey, Path>();
+            
                     
             // Watch Service
             watchService = FileSystems.getDefault().newWatchService();
@@ -215,41 +225,83 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     }//GEN-LAST:event_ConnectServerButtonActionPerformed
 
     private void registWatchingFolder(Path path) {
-        Runnable process = new Runnable() {
-            @Override
-            public void run() {
+        
                 try {
-                    path.register(watcher, 
+                    WatchKey keyRegisted = path.register(this.watchService, 
                             StandardWatchEventKinds.ENTRY_CREATE, 
                             StandardWatchEventKinds.ENTRY_MODIFY, 
                             StandardWatchEventKinds.ENTRY_DELETE);
                     
+                    watchKeyContainer.put(keyRegisted, path);
                     
-                    watchKey = watcher.take();
-                    
-                    for (WatchEvent<?> event: watchKey.pollEvents()) {
-                        WatchEvent.Kind<?> kind = event.kind();
-                        
-                        if(kind == StandardWatchEventKinds.OVERFLOW) {
-                            continue;
-                        }
-                        
-                        WatchEvent<Path> ev = (WatchEvent<Path>)event;
-                        Path filename = ev.context();
-                        
-                       System.out.println("filename" + filename);
-                    }
-                
+                    System.out.println("Hello");
                 } catch (IOException ex) {
                     Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            
+    }
+    
+    private void processFileFolderChangeEvents() {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        System.out.println("Lolo 1 1");
+                        watchKey = watchService.take();
+                    } catch (InterruptedException x) {
+                        return;
+                    }
+                    System.out.println("Lolo");
+
+                                for (WatchEvent<?> event: watchKey.pollEvents()) {
+                                    WatchEvent.Kind<?> kind = event.kind();
+
+                                    if(kind == StandardWatchEventKinds.OVERFLOW) {
+                                        continue;
+                                    }
+
+                                    WatchEvent<Path> ev = (WatchEvent<Path>)event;
+                                    Path parentFolderPath = ev.context();
+                                    Path childFolderPath = path.resolve(parentFolderPath);
+
+                                    System.out.println("parentFolderPath" + parentFolderPath);
+
+                                    if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+                                         try {
+                                             if (Files.isDirectory(childFolderPath)) {
+                                                 walkAndRegisterDirectories(childFolderPath);
+                                             }
+                                        } catch (IOException x) {
+                                        // do something useful
+                                    }
+                                }
+                            }
+                            boolean valid = watchKey.reset();
+                            if (!valid) {
+                            watchKeyContainer.remove(watchKey);
+
+                            // all directories are inaccessible
+                            if (watchKeyContainer.isEmpty()) {
+                                break;
+                        }
+                    }
                 }
             }
-        };
+        });
         
-        Thread runner = new Thread(process);
-        runner.start();
+        thread.start();
+    }
+    
+    private void walkAndRegisterDirectories(final Path start) throws IOException {
+        // register directory and sub-directories
+        Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                registWatchingFolder(dir);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
     
     private void connectToServer(String IP, int port) {
@@ -280,6 +332,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                         switch(command) {
                             case ActionName.ServerAccepted: {
                                 ConnectServerStatusText.setText("You have connected to Server");
+                                processFileFolderChangeEvents();
                                 break;
                             }
                             case ActionName.ServerStopped: {

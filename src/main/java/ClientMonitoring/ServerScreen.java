@@ -404,12 +404,7 @@ public class ServerScreen extends javax.swing.JFrame {
                             tableModel.addRow(new Object[] { STT, clientIP, ActionName.Register, defaultDirectory, createdAt });
                             updateTableModel(ClientConnectedListTable, tableModel);
                             
-                            System.out.println("clientIP: " + clientIP);
-                            System.out.println("fileStructure: " + fileStructure);
                             clientFileStructureContainer.put(clientIP, fileStructure);
-                            System.out.println("clientFileStructureContainer key: " + clientFileStructureContainer.containsKey(clientIP));
-                            System.out.println("clientFileStructureContainer: " + clientFileStructureContainer.get(clientIP));
-                            
                             oos.writeObject(new ServerAction(ActionName.ServerAccepted));
                             openCommunication(clientIP, socket, ois, oos);
                         }
