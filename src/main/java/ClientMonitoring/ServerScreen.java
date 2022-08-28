@@ -17,8 +17,19 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,8 +57,8 @@ public class ServerScreen extends javax.swing.JFrame {
 
     public ServerSocket serverSocket;
     private ArrayList<String> clientIPsConnected;
-    private final String IP = "127.0.0.4";
-    private final int port = 1234;
+    private String IP;
+    private int port;
     private Thread threadConnector = null;
     private HashMap<String, ClientHandler> clientInformation;
     private DefaultTableModel tableModel;
@@ -65,37 +76,40 @@ public class ServerScreen extends javax.swing.JFrame {
      * Creates new form ServerScreen
      */
     public ServerScreen() {
+        
         initComponents();
         this.bootstrap();
     }
     
-    
-    
     private void bootstrap() {
-        // Set Label
-        ServerIPLabel.setText(ServerIPLabel.getText() + " " + this.IP);
-        ServerPortLabel.setText(ServerPortLabel.getText() + " " + this.port);
-        
-        // Init
-        clientInformation = new HashMap<String, ClientHandler>();
-        clientFileStructureContainer = new HashMap<String, FileStructure>();
-        folderChooserFrame = new JFrame("Select your folder");
-        
-        changeDirectoryButton = new JButton("Change");
-	changeDirectoryButton.setBounds(300, 0, 0, 10);
-	folderChooserFrame.getContentPane().add(changeDirectoryButton);
-        
-        // Table
-        String[] header = new String[] { "STT", "Client IP", "Action", "Default Directory", "CreateAt" };
-        this.tableModel = new DefaultTableModel();
-    	this.tableModel.setColumnIdentifiers(header);
-        this.tableSorter = new TableRowSorter<TableModel>(this.tableModel); 
-        ClientConnectedListTable.setRowSorter(this.tableSorter);
-        
-        
-        // Event handlers
-        eventHandlers();
+        try {
+            // Start
+            this.IP = InetAddress.getLocalHost().getHostAddress();
+            this.port = 1234;
+            // Set Label
+            ServerIPLabel.setText(ServerIPLabel.getText() + " " + this.IP);
+            ServerPortLabel.setText(ServerPortLabel.getText() + " " + this.port);
+            // Init
+            clientInformation = new HashMap<String, ClientHandler>();
+            clientFileStructureContainer = new HashMap<String, FileStructure>();
+            folderChooserFrame = new JFrame("Select your folder");
+            changeDirectoryButton = new JButton("Change Directory");
+            changeDirectoryButton.setBounds(638, 339, 78, 29);
+            folderChooserFrame.getContentPane().add(changeDirectoryButton);
+            
+            // Table
+            String[] header = new String[] { "STT", "Client IP", "Action", "Default Directory", "Create At" };
+            this.tableModel = new DefaultTableModel();
+            this.tableModel.setColumnIdentifiers(header);
+            this.tableSorter = new TableRowSorter<TableModel>(this.tableModel);
+            ClientConnectedListTable.setRowSorter(this.tableSorter);
+            // Event handlers
+            eventHandlers();
+        } catch (UnknownHostException ex) {
+            Logger.getLogger(ServerScreen.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
+    
     
     private void eventHandlers() {
         BrowseFileClientChangeButton.addActionListener(new ActionListener() {
@@ -103,10 +117,24 @@ public class ServerScreen extends javax.swing.JFrame {
             public void actionPerformed(ActionEvent e) {
                 String selectedClient = 
                         ClientConnectedListTable.getValueAt(
-                                ClientConnectedListTable.getSelectedRow(), 0
+                                ClientConnectedListTable.getSelectedRow(), 1
                         ).toString();
                 
                 showFileStructure(selectedClient);
+            }
+	});
+        
+        changeDirectoryButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                boolean hasSelectedItem = fileStructureTree != null && !fileStructureTree.isSelectionEmpty();
+                if (hasSelectedItem) {
+                    String path = fileStructureTree.getSelectionPath().getLastPathComponent().toString();
+                    
+                    String selectedRow = ClientConnectedListTable.getValueAt(ClientConnectedListTable.getSelectedRow(), 1).toString();
+                    clientInformation.get(selectedRow).changeFolderPath(path);
+                    folderChooserFrame.setVisible(false);
+                }
             }
 	});
     }
@@ -335,8 +363,8 @@ public class ServerScreen extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(RemoveClientButton1)
                     .addComponent(ClientIPSearchInputField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(SearchClientIPButton)
-                    .addComponent(BrowseFileClientChangeButton))
+                    .addComponent(BrowseFileClientChangeButton)
+                    .addComponent(SearchClientIPButton, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 171, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
@@ -370,13 +398,17 @@ public class ServerScreen extends javax.swing.JFrame {
                             FileStructure fileStructure = data.getFileStructure();
                             LocalDateTime createdAt = data.getCreatedAt();
                             String clientIP = data.getClientIP();
-                            String action = data.getMessage();
+                            String defaultDirectory = data.getDefaultDirectory();
                             
                             
-                            tableModel.addRow(new Object[] { STT, clientIP, ActionName.Register, action, createdAt });
+                            tableModel.addRow(new Object[] { STT, clientIP, ActionName.Register, defaultDirectory, createdAt });
                             updateTableModel(ClientConnectedListTable, tableModel);
                             
-                            addFileStructure(clientIP, fileStructure);
+                            System.out.println("clientIP: " + clientIP);
+                            System.out.println("fileStructure: " + fileStructure);
+                            clientFileStructureContainer.put(clientIP, fileStructure);
+                            System.out.println("clientFileStructureContainer key: " + clientFileStructureContainer.containsKey(clientIP));
+                            System.out.println("clientFileStructureContainer: " + clientFileStructureContainer.get(clientIP));
                             
                             oos.writeObject(new ServerAction(ActionName.ServerAccepted));
                             openCommunication(clientIP, socket, ois, oos);
@@ -400,17 +432,14 @@ public class ServerScreen extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_StartServerButtonActionPerformed
 
-    private void addFileStructure(String clientIP, FileStructure fileStructure) {
-        clientFileStructureContainer.put(clientIP, fileStructure);
-    }
     
     private void showFileStructure(String clientIP) {
         fileStructureTree = new JTree(clientFileStructureContainer.get(clientIP));
-	JScrollPane scrollPopup = new JScrollPane(fileStructureTree);
-	    
         
+        
+	JScrollPane scrollPopup = new JScrollPane(fileStructureTree);
 	folderChooserFrame.getContentPane().add(scrollPopup);
-        folderChooserFrame.setSize(300,500);
+        folderChooserFrame.setSize(700,900);
 	folderChooserFrame.setVisible(true);
     }
     

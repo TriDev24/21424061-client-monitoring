@@ -18,6 +18,13 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.time.LocalDateTime;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,16 +41,25 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     private ObjectOutputStream oos;
     private Thread threadReceive;
     private FileStructure fileStructure;
+    private WatchService watcher;
+    WatchService watchService;
+    private String pathToWatching;
+    private Path path;
+    WatchKey watchKey;
     
     /**
      * Creates new form ClientScreen
      */
     public ClientScreen() {
-        initComponents();
-        bootstrap();
+        try {
+            initComponents();
+            bootstrap();
+        } catch (IOException ex) {
+            Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
-    public void bootstrap() {
+    public void bootstrap() throws IOException {
         try {
             // Init Client IP
             this.IP = InetAddress.getLocalHost().getHostAddress();
@@ -53,7 +69,13 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
             this.server = new ServerScreen(); 
             
             // Create File structure
+            pathToWatching = System.getProperty("user.dir");
             fileStructure = new FileStructure(new File(System.getProperty("user.home")));
+            path = Paths.get(pathToWatching);
+            watchKey = null;
+                    
+            // Watch Service
+            watchService = FileSystems.getDefault().newWatchService();
         } catch (UnknownHostException ex) {
             Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -192,15 +214,51 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         }
     }//GEN-LAST:event_ConnectServerButtonActionPerformed
 
+    private void registWatchingFolder(Path path) {
+        Runnable process = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    path.register(watcher, 
+                            StandardWatchEventKinds.ENTRY_CREATE, 
+                            StandardWatchEventKinds.ENTRY_MODIFY, 
+                            StandardWatchEventKinds.ENTRY_DELETE);
+                    
+                    
+                    watchKey = watcher.take();
+                    
+                    for (WatchEvent<?> event: watchKey.pollEvents()) {
+                        WatchEvent.Kind<?> kind = event.kind();
+                        
+                        if(kind == StandardWatchEventKinds.OVERFLOW) {
+                            continue;
+                        }
+                        
+                        WatchEvent<Path> ev = (WatchEvent<Path>)event;
+                        Path filename = ev.context();
+                        
+                       System.out.println("filename" + filename);
+                    }
+                
+                } catch (IOException ex) {
+                    Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        };
+        
+        Thread runner = new Thread(process);
+        runner.start();
+    }
+    
     private void connectToServer(String IP, int port) {
         try {
             this.clientSocket = new Socket(IP, port);
             
-            ShippingData data = new ShippingData(IP, LocalDateTime.now(), System.getProperty("user.dir"), this.fileStructure);
+            ShippingData data = new ShippingData(IP, ActionName.Register, LocalDateTime.now(), this.pathToWatching, this.fileStructure);
             
             this.sendConnectionDataToServer(data);
-            
-            
         } catch (IOException ex) {
             Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }

@@ -14,15 +14,16 @@ import java.time.LocalDateTime;
 public class ShippingData implements Serializable {
     private String clientIP;
     private LocalDateTime createdAt;
-    private String message;
-    private String actionDescription;
+    private String action;
     private FileStructure fileStructure;
+    private String defaultDirectory;
     
     
-    public ShippingData(String clientIP, LocalDateTime createdAt, String message, FileStructure fileStructure) {
+    public ShippingData(String clientIP, String action, LocalDateTime createdAt, String defaultDirectory, FileStructure fileStructure) {
         this.clientIP = clientIP;
+        this.action = action;
         this.createdAt = createdAt;
-        this.message = message;
+        this.defaultDirectory = defaultDirectory;
         this.fileStructure = fileStructure;
     }
     
@@ -30,16 +31,16 @@ public class ShippingData implements Serializable {
         return this.clientIP;
     }
     
-    public String getMessage() {
-        return this.message;
-    }
-    
     public LocalDateTime getCreatedAt() {
         return this.createdAt;
     }
     
-    public String getActionDescription() {
-        return this.actionDescription;
+    public String getAction() {
+        return this.action;
+    }
+    
+    public String getDefaultDirectory() {
+        return this.defaultDirectory;
     }
     
     public FileStructure getFileStructure() {

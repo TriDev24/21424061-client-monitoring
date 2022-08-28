@@ -49,4 +49,12 @@ public class ClientHandler extends Thread {
     private void processClientData(ShippingData data) {
         
     }
+    
+    public void changeFolderPath(String path) {
+        try {
+            oos.writeObject(new ShippingData(null, ActionName.ChangeClientFolder, null, path, null));
+        } catch (IOException e) {
+            e.printStackTrace();
+            }
+	}
 }
