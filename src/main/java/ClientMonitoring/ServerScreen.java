@@ -142,18 +142,11 @@ public class ServerScreen extends javax.swing.JFrame {
                 boolean hasSelectedItem = fileStructureTree != null && !fileStructureTree.isSelectionEmpty();
                 if (hasSelectedItem) {
                     String path = fileStructureTree.getSelectionPath().getLastPathComponent().toString();
-
-                    String clientIP = ClientConnectedListTable.getValueAt(ClientConnectedListTable.getSelectedRow(), 1).toString();
-                    clientInformation.get(clientIP).changeFolderPath(path);
-                    folderChooserFrame.setVisible(false);
-                    
-                    System.out.println("selected row: " + ClientConnectedListTable.getSelectedRow());
-                    System.out.println("selected column: " + ClientConnectedListTable.getSelectedColumn());
-                    
-                    tableModel.setValueAt(path, 
-                            ClientConnectedListTable.getSelectedRow(),
+                    tableModel.setValueAt(path,
+                                ClientConnectedListTable.getSelectedRow(),
                                 ClientConnectedListTable.getSelectedColumn());
-                    
+                    tableModel.fireTableDataChanged();
+                    folderChooserFrame.setVisible(false);
                 }
             }
         });
@@ -420,7 +413,7 @@ public class ServerScreen extends javax.swing.JFrame {
                             String clientIP = data.getClientIP();
                             String defaultDirectory = data.getDefaultDirectory();
 
-                            tableModel.addRow(new Object[]{STT, clientIP, ActionName.Register, defaultDirectory, createdAt});
+                            tableModel.addRow(new Object[]{STT++, clientIP, ActionName.Register, defaultDirectory, createdAt});
                             updateTableModel(ClientConnectedListTable, tableModel);
 
                             clientFileStructureContainer.put(clientIP, fileStructure);
@@ -510,13 +503,12 @@ public class ServerScreen extends javax.swing.JFrame {
             @Override
             public void handleProcess(ShippingData data) {
                 String action = data.getAction();
-                if(action == ActionName.Leave) {
+                if(action.equals(ActionName.Leave)) {
                     addDataToConnectedClientTable(data);
-                }
-                else {
-                    writeToNotificationModel(data);
+                    return;
                 }
                 
+                writeToNotificationModel(data);
             }
         });
         
@@ -529,7 +521,7 @@ public class ServerScreen extends javax.swing.JFrame {
         String clientIP = data.getClientIP();
         String description = data.getDescription();
         
-        this.notificationTableModel.addRow(new Object[] {this.notificationCounter++, clientIP, LocalDateTime.now(), action, description});
+        this.notificationTableModel.addRow(new Object[] { this.notificationCounter++, clientIP, LocalDateTime.now(), action, description});
     }
     
     private void addDataToConnectedClientTable(ShippingData data) {
@@ -538,7 +530,7 @@ public class ServerScreen extends javax.swing.JFrame {
         String defaultDirectory = data.getDefaultDirectory();
         LocalDateTime createAt = data.getCreatedAt();
         
-        tableModel.addRow(new Object[] {STT++, clientIP, action, defaultDirectory, createAt});
+        tableModel.addRow(new Object[] { STT++, clientIP, action, defaultDirectory, createAt });
     }
 
     /**

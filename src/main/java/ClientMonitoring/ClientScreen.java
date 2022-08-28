@@ -89,7 +89,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
             watchKeyContainer = new HashMap<WatchKey, Path>();
             
             // Table
-            String[] header = new String[]{"STT", "Action", "Change Time", "Description"};
+            String[] header = new String[] {"STT", "Action", "Change Time", "Description"};
             this.tableModel = new DefaultTableModel();
             this.tableModel.setColumnIdentifiers(header);
             ChangeFolderTable.setModel(this.tableModel);
@@ -266,6 +266,8 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     }//GEN-LAST:event_ServerIPTextInputActionPerformed
 
     private void ConnectServerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ConnectServerButtonActionPerformed
+        ConnectServerButton.setEnabled(false);
+        DisconnectButton.setEnabled(true);
         String serverIPInput = ServerIPTextInput.getText().trim();
         String serverPortInput = ServerPortTextInput.getText().trim();
         int parsedPortInput = Integer.parseInt(serverPortInput);
@@ -285,13 +287,14 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
 
     private void DisconnectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DisconnectButtonActionPerformed
         try {
+            this.sendData(ActionName.Leave, "");
             this.threadReceive.interrupt();
-            
+            this.counter = 0;
             this.oos = null;
             this.ois = null;
             ConnectServerButton.setEnabled(true);
             DisconnectButton.setEnabled(false);
-            this.sendData(ActionName.Leave, "");
+            ConnectServerStatusText.setText("You have disconnected");
         } catch (IOException ex) {
             Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -427,7 +430,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         
         ShippingData data = new ShippingData(this.IP, action, LocalDateTime.now(), null, null, description);
         
-        System.out.println("data: " + data);
+        System.out.println("data: " + data.getAction());
         oos.writeObject(data);
     }
 
