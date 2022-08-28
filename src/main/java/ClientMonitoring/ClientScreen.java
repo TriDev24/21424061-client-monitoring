@@ -6,7 +6,7 @@ package ClientMonitoring;
 
 import Configs.ActionName;
 import Configs.FileStructure;
-import Configs.ServerAction;
+import Configs.ServerRequestPackage;
 import Configs.ShippingData;
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +39,7 @@ import java.util.logging.Logger;
  * @author bin
  */
 public class ClientScreen extends javax.swing.JFrame implements Runnable {
+
     private String IP;
     private ServerScreen server;
     private Socket clientSocket;
@@ -49,9 +50,9 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     private WatchService watchService;
     private String pathToWatching;
     private Path path;
-    private WatchKey watchKey;
+    private File fileWatch;
     private HashMap<WatchKey, Path> watchKeyContainer;
-    
+
     /**
      * Creates new form ClientScreen
      */
@@ -63,27 +64,25 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
             Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     public void bootstrap() throws IOException {
         try {
             // Init Client IP
             this.IP = InetAddress.getLocalHost().getHostAddress();
             ClientIPLabel.setText(ClientIPLabel.getText() + " " + this.IP);
-            
+
             // Create Server Instance
-            this.server = new ServerScreen(); 
-            
+            this.server = new ServerScreen();
+
             // Create File structure
             pathToWatching = System.getProperty("user.dir");
-            
+
             fileStructure = new FileStructure(new File(System.getProperty("user.home")));
             path = Paths.get(pathToWatching);
-            System.out.println("path" + path);
+            fileWatch = new File(pathToWatching);
 
-            watchKey = null;
             watchKeyContainer = new HashMap<WatchKey, Path>();
-            
-                    
+
             // Watch Service
             watchService = FileSystems.getDefault().newWatchService();
         } catch (UnknownHostException ex) {
@@ -211,128 +210,126 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
         String serverIPInput = ServerIPTextInput.getText().trim();
         String serverPortInput = ServerPortTextInput.getText().trim();
         int parsedPortInput = Integer.parseInt(serverPortInput);
-        boolean isCorrectServerConfigs =
-                serverIPInput.equals(server.getIP()) && parsedPortInput == server.getPort();
-        
-        if(isCorrectServerConfigs) {
+        boolean isCorrectServerConfigs
+                = serverIPInput.equals(server.getIP()) && parsedPortInput == server.getPort();
+
+        if (isCorrectServerConfigs) {
             try {
                 this.connectToServer(this.IP, parsedPortInput);
                 this.receiveConnectStatusFromServer();
+
             } catch (IOException ex) {
                 Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }//GEN-LAST:event_ConnectServerButtonActionPerformed
 
-    private void registWatchingFolder(Path path) {
-        
+    private void alo() {
+
+    }
+
+    private void registerWatchingFolder(Path path) {
+        try {
+            WatchKey keyRegisted = path.register(this.watchService,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_MODIFY,
+                    StandardWatchEventKinds.ENTRY_DELETE);
+
+            watchKeyContainer.put(keyRegisted, path);
+
+            System.out.println("Hello");
+        } catch (IOException ex) {
+            Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void processFileFolderChange() throws IOException {
+        Thread runner = new Thread(new Runnable() {
+            @Override
+            public void run() {
                 try {
-                    WatchKey keyRegisted = path.register(this.watchService, 
-                            StandardWatchEventKinds.ENTRY_CREATE, 
-                            StandardWatchEventKinds.ENTRY_MODIFY, 
-                            StandardWatchEventKinds.ENTRY_DELETE);
-                    
-                    watchKeyContainer.put(keyRegisted, path);
-                    
-                    System.out.println("Hello");
+                    WatchService watcher = FileSystems.getDefault().newWatchService();
+                    Path dir = Paths.get(System.getProperty("user.dir"));
+                    dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE,
+                            StandardWatchEventKinds.ENTRY_MODIFY);
+
+                    System.out.println("Watch Service registered for dir: " + dir.getFileName());
+
+                    WatchKey key = null;
+                    while (true) {
+                        try {
+                            key = watcher.take();
+                        } catch (InterruptedException ex) {
+                            System.out.println("InterruptedException: " + ex.getMessage());
+                            return;
+                        }
+
+                        for (WatchEvent<?> event : key.pollEvents()) {
+                            // Retrieve the type of event by using the kind() method.
+                            WatchEvent.Kind<?> kind = event.kind();
+                            WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                            Path fileName = ev.context();
+                            if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+                                System.out.printf("A new file %s was created.%n", fileName.getFileName());
+                            } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
+                                System.out.printf("A file %s was modified.%n", fileName.getFileName());
+                            } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+                                System.out.printf("A file %s was deleted.%n", fileName.getFileName());
+                            }
+                        }
+                        boolean valid = key.reset();
+                        if (!valid) {
+                            break;
+                        }
+                    }
                 } catch (IOException ex) {
                     Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            
-    }
-    
-    private void processFileFolderChangeEvents() {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(true) {
-                    try {
-                        System.out.println("Lolo 1 1");
-                        watchKey = watchService.take();
-                    } catch (InterruptedException x) {
-                        return;
-                    }
-                    System.out.println("Lolo");
-
-                                for (WatchEvent<?> event: watchKey.pollEvents()) {
-                                    WatchEvent.Kind<?> kind = event.kind();
-
-                                    if(kind == StandardWatchEventKinds.OVERFLOW) {
-                                        continue;
-                                    }
-
-                                    WatchEvent<Path> ev = (WatchEvent<Path>)event;
-                                    Path parentFolderPath = ev.context();
-                                    Path childFolderPath = path.resolve(parentFolderPath);
-
-                                    System.out.println("parentFolderPath" + parentFolderPath);
-
-                                    if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-                                         try {
-                                             if (Files.isDirectory(childFolderPath)) {
-                                                 walkAndRegisterDirectories(childFolderPath);
-                                             }
-                                        } catch (IOException x) {
-                                        // do something useful
-                                    }
-                                }
-                            }
-                            boolean valid = watchKey.reset();
-                            if (!valid) {
-                            watchKeyContainer.remove(watchKey);
-
-                            // all directories are inaccessible
-                            if (watchKeyContainer.isEmpty()) {
-                                break;
-                        }
-                    }
-                }
             }
         });
-        
-        thread.start();
+        runner.start();
     }
-    
+
     private void walkAndRegisterDirectories(final Path start) throws IOException {
         // register directory and sub-directories
         Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                registWatchingFolder(dir);
+                registerWatchingFolder(dir);
                 return FileVisitResult.CONTINUE;
             }
         });
     }
-    
+
     private void connectToServer(String IP, int port) {
         try {
             this.clientSocket = new Socket(IP, port);
-            
+
             ShippingData data = new ShippingData(IP, ActionName.Register, LocalDateTime.now(), this.pathToWatching, this.fileStructure);
-            
+
             this.sendConnectionDataToServer(data);
         } catch (IOException ex) {
             Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     private void receiveConnectStatusFromServer() throws IOException {
         if (ois == null) {
             ois = new ObjectInputStream(this.clientSocket.getInputStream());
-	}
-        
+        }
+
         this.threadReceive = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true) {
+                while (true) {
                     try {
-                        ServerAction serverAction = (ServerAction) ois.readObject();
+                        ServerRequestPackage serverAction = (ServerRequestPackage) ois.readObject();
                         String command = serverAction.getAction();
-                        
-                        switch(command) {
+
+                        switch (command) {
                             case ActionName.ServerAccepted: {
                                 ConnectServerStatusText.setText("You have connected to Server");
-                                processFileFolderChangeEvents();
+                                processFileFolderChange();
                                 break;
                             }
                             case ActionName.ServerStopped: {
@@ -340,7 +337,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                                 break;
                             }
                         }
-                       
+
                     } catch (IOException ex) {
                         Logger.getLogger(ClientScreen.class.getName()).log(Level.SEVERE, null, ex);
                     } catch (ClassNotFoundException ex) {
@@ -349,20 +346,20 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                 }
             }
         });
-        
+
         this.threadReceive.start();
     }
-    
+
     private void sendConnectionDataToServer(ShippingData data) throws IOException {
-		
+
         //write to socket using ObjectOutputStream
         if (oos == null) {
             oos = new ObjectOutputStream(this.clientSocket.getOutputStream());
         }
-		
+
         oos.writeObject(data);
     }
-    
+
     /**
      * @param args the command line arguments
      */

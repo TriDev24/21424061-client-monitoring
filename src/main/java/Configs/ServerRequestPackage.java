@@ -10,18 +10,25 @@ import java.io.Serializable;
  *
  * @author bin
  */
-public class ServerAction implements Serializable {
+public class ServerRequestPackage implements Serializable {
+
     private String action;
-    
-    public ServerAction(String action) {
-	super();
+    private String directoryPath;
+
+    public ServerRequestPackage(String action, String directoryPath) {
+        super();
         this.action = action;
+        this.directoryPath = directoryPath;
     }
-    
+
     public String getAction() {
         return this.action;
     }
-    
+
+    public String getDirectoryPath() {
+        return this.directoryPath;
+    }
+
     public void writeAction(String newAction) {
         this.action = newAction;
     }

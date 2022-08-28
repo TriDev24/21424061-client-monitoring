@@ -9,10 +9,11 @@ package Configs;
  * @author bin
  */
 public class ActionName {
+
     public final static String Register = "REGISTER";
     public final static String Leave = "LEAVE";
     public final static String ChangeClientFolder = "CHANGE_CLIENT_FOLDER";
-    
+
     public final static String ServerAccepted = "SERVER_ACCEPTED";
     public final static String ServerStopped = "SERVER_STOPPED";
 }

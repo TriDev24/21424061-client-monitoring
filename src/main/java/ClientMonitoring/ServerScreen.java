@@ -7,7 +7,7 @@ package ClientMonitoring;
 import Configs.ClientHandler;
 import Configs.ActionName;
 import Configs.FileStructure;
-import Configs.ServerAction;
+import Configs.ServerRequestPackage;
 import Configs.ShippingData;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -71,16 +71,16 @@ public class ServerScreen extends javax.swing.JFrame {
     ObjectOutputStream oos;
     ObjectInputStream ois;
     private int STT = 1;
-    
+
     /**
      * Creates new form ServerScreen
      */
     public ServerScreen() {
-        
+
         initComponents();
         this.bootstrap();
     }
-    
+
     private void bootstrap() {
         try {
             // Start
@@ -96,9 +96,9 @@ public class ServerScreen extends javax.swing.JFrame {
             changeDirectoryButton = new JButton("Change Directory");
             changeDirectoryButton.setBounds(638, 339, 78, 29);
             folderChooserFrame.getContentPane().add(changeDirectoryButton);
-            
+
             // Table
-            String[] header = new String[] { "STT", "Client IP", "Action", "Default Directory", "Create At" };
+            String[] header = new String[]{"STT", "Client IP", "Action", "Default Directory", "Create At"};
             this.tableModel = new DefaultTableModel();
             this.tableModel.setColumnIdentifiers(header);
             this.tableSorter = new TableRowSorter<TableModel>(this.tableModel);
@@ -109,40 +109,39 @@ public class ServerScreen extends javax.swing.JFrame {
             Logger.getLogger(ServerScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
-    
+
     private void eventHandlers() {
         BrowseFileClientChangeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String selectedClient = 
-                        ClientConnectedListTable.getValueAt(
+                String selectedClient
+                        = ClientConnectedListTable.getValueAt(
                                 ClientConnectedListTable.getSelectedRow(), 1
                         ).toString();
-                
+
                 showFileStructure(selectedClient);
             }
-	});
-        
+        });
+
         changeDirectoryButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 boolean hasSelectedItem = fileStructureTree != null && !fileStructureTree.isSelectionEmpty();
                 if (hasSelectedItem) {
                     String path = fileStructureTree.getSelectionPath().getLastPathComponent().toString();
-                    
+
                     String selectedRow = ClientConnectedListTable.getValueAt(ClientConnectedListTable.getSelectedRow(), 1).toString();
                     clientInformation.get(selectedRow).changeFolderPath(path);
                     folderChooserFrame.setVisible(false);
                 }
             }
-	});
+        });
     }
-    
+
     public String getIP() {
         return this.IP;
     }
-    
+
     public int getPort() {
         return this.port;
     }
@@ -382,7 +381,7 @@ public class ServerScreen extends javax.swing.JFrame {
     private void StartServerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_StartServerButtonActionPerformed
         try {
             serverSocket = new ServerSocket(port);
-            
+
             Runnable socketRunnable = new Runnable() {
                 @Override
                 public void run() {
@@ -390,22 +389,21 @@ public class ServerScreen extends javax.swing.JFrame {
                     try {
                         while (true) {
                             socket = serverSocket.accept();
-                            
+
                             oos = new ObjectOutputStream(socket.getOutputStream());
                             ois = new ObjectInputStream(socket.getInputStream());
-                            
+
                             ShippingData data = (ShippingData) ois.readObject();
                             FileStructure fileStructure = data.getFileStructure();
                             LocalDateTime createdAt = data.getCreatedAt();
                             String clientIP = data.getClientIP();
                             String defaultDirectory = data.getDefaultDirectory();
-                            
-                            
-                            tableModel.addRow(new Object[] { STT, clientIP, ActionName.Register, defaultDirectory, createdAt });
+
+                            tableModel.addRow(new Object[]{STT, clientIP, ActionName.Register, defaultDirectory, createdAt});
                             updateTableModel(ClientConnectedListTable, tableModel);
-                            
+
                             clientFileStructureContainer.put(clientIP, fileStructure);
-                            oos.writeObject(new ServerAction(ActionName.ServerAccepted));
+                            oos.writeObject(new ServerRequestPackage(ActionName.ServerAccepted, defaultDirectory));
                             openCommunication(clientIP, socket, ois, oos);
                         }
                     } catch (IOException e) {
@@ -415,10 +413,10 @@ public class ServerScreen extends javax.swing.JFrame {
                     }
                 }
             };
-            
+
             this.threadConnector = new Thread(socketRunnable);
             this.threadConnector.start();
-            
+
             ServerConnectionStatusLabel.setText("Server is on running...");
             StartServerButton.setEnabled(false);
             StopServerButton.setEnabled(true);
@@ -427,22 +425,20 @@ public class ServerScreen extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_StartServerButtonActionPerformed
 
-    
     private void showFileStructure(String clientIP) {
         fileStructureTree = new JTree(clientFileStructureContainer.get(clientIP));
-        
-        
-	JScrollPane scrollPopup = new JScrollPane(fileStructureTree);
-	folderChooserFrame.getContentPane().add(scrollPopup);
-        folderChooserFrame.setSize(700,900);
-	folderChooserFrame.setVisible(true);
+
+        JScrollPane scrollPopup = new JScrollPane(fileStructureTree);
+        folderChooserFrame.getContentPane().add(scrollPopup);
+        folderChooserFrame.setSize(700, 900);
+        folderChooserFrame.setVisible(true);
     }
-    
+
     private void updateTableModel(JTable table, DefaultTableModel newModel) {
         newModel.fireTableDataChanged();
         table.setModel(newModel);
     }
-    
+
     private void ClearAllNotificationButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ClearAllNotificationButtonActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_ClearAllNotificationButtonActionPerformed
@@ -450,32 +446,31 @@ public class ServerScreen extends javax.swing.JFrame {
     private void StopServerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_StopServerButtonActionPerformed
         try {
             this.closeConnect();
-            
+
             this.tableModel.setRowCount(0);
             clientInformation.clear();
-            
-            oos.writeObject(new ServerAction(ActionName.ServerStopped));
-            
+
+            oos.writeObject(new ServerRequestPackage(ActionName.ServerStopped, null));
+
             ServerConnectionStatusLabel.setText("Server has stopped...");
             StartServerButton.setEnabled(true);
             StopServerButton.setEnabled(false);
         } catch (IOException ex) {
             Logger.getLogger(ServerScreen.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }//GEN-LAST:event_StopServerButtonActionPerformed
 
     private void SearchClientIPButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SearchClientIPButtonActionPerformed
         String searchValue = ClientIPSearchInputField.getText();
-        
-        if(searchValue.length() == 0) {
+
+        if (searchValue.length() == 0) {
             this.tableSorter.setRowFilter(null);
-        }
-        else {
+        } else {
             try {
                 System.out.println(RowFilter.regexFilter(searchValue));
                 this.tableSorter.setRowFilter(RowFilter.regexFilter(searchValue, 1));
-            } catch(PatternSyntaxException pse) {
+            } catch (PatternSyntaxException pse) {
                 System.out.println("Bad regex pattern");
             }
         }
@@ -485,22 +480,19 @@ public class ServerScreen extends javax.swing.JFrame {
         this.threadConnector.interrupt();
         serverSocket.close();
     }
-    
+
     private void openCommunication(String clientIP, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
         ClientHandler clientHandler = new ClientHandler(oos, ois, socket, clientIP);
-        
+
         clientInformation.put(clientIP, clientHandler);
         clientHandler.start();
     }
-    
-    
-    
+
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-		
-        
+
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.

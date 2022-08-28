@@ -17,25 +17,25 @@ import java.util.logging.Logger;
  *
  * @author bin
  */
-
 public class ClientHandler extends Thread {
+
     ObjectOutputStream oos;
     ObjectInputStream ois;
     Socket socket;
     String clientAction;
     FileStructure fileStructure;
-	
+
     public ClientHandler(ObjectOutputStream oos, ObjectInputStream ois, Socket socket, String clientAction) {
-    	super();
-	this.oos = oos;
-	this.ois = ois;
-	this.socket = socket;
-	this.clientAction = clientAction;
+        super();
+        this.oos = oos;
+        this.ois = ois;
+        this.socket = socket;
+        this.clientAction = clientAction;
     }
-	
+
     @Override
     public void run() {
-		
+
         try {
             ShippingData data = (ShippingData) ois.readObject();
             processClientData(data);
@@ -44,17 +44,17 @@ public class ClientHandler extends Thread {
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(ClientHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
-        }
-        
-    private void processClientData(ShippingData data) {
-        
     }
-    
+
+    private void processClientData(ShippingData data) {
+
+    }
+
     public void changeFolderPath(String path) {
         try {
-            oos.writeObject(new ShippingData(null, ActionName.ChangeClientFolder, null, path, null));
+            oos.writeObject(new ServerRequestPackage(ActionName.ChangeClientFolder, path));
         } catch (IOException e) {
             e.printStackTrace();
-            }
-	}
+        }
+    }
 }
