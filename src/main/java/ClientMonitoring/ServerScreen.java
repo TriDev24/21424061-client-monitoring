@@ -46,6 +46,8 @@ import javax.swing.JTable;
 import javax.swing.JTree;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.RowFilter;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
@@ -74,6 +76,7 @@ public class ServerScreen extends javax.swing.JFrame {
     ObjectInputStream ois;
     private int STT = 1;
     private int notificationCounter = 1;
+    private JPopupMenu alertPopup;
 
     /**
      * Creates new form ServerScreen
@@ -105,6 +108,7 @@ public class ServerScreen extends javax.swing.JFrame {
             this.tableModel = new DefaultTableModel();
             this.tableModel.setColumnIdentifiers(header);
             this.tableSorter = new TableRowSorter<TableModel>(this.tableModel);
+            ClientConnectedListTable.setModel(tableModel);
             ClientConnectedListTable.setRowSorter(this.tableSorter);
             
             String[] notificationTableHeader = new String[]{"STT", "Client IP", "Time", "Action", "Description"};
@@ -139,11 +143,17 @@ public class ServerScreen extends javax.swing.JFrame {
                 if (hasSelectedItem) {
                     String path = fileStructureTree.getSelectionPath().getLastPathComponent().toString();
 
-                    System.out.println("path" + path);
-                    String selectedRow = ClientConnectedListTable.getValueAt(ClientConnectedListTable.getSelectedRow(), 1).toString();
-                    clientInformation.get(selectedRow).changeFolderPath(path);
+                    String clientIP = ClientConnectedListTable.getValueAt(ClientConnectedListTable.getSelectedRow(), 1).toString();
+                    clientInformation.get(clientIP).changeFolderPath(path);
                     folderChooserFrame.setVisible(false);
-                    updateTableModel(ClientConnectedListTable, tableModel);
+                    
+                    System.out.println("selected row: " + ClientConnectedListTable.getSelectedRow());
+                    System.out.println("selected column: " + ClientConnectedListTable.getSelectedColumn());
+                    
+                    tableModel.setValueAt(path, 
+                            ClientConnectedListTable.getSelectedRow(),
+                                ClientConnectedListTable.getSelectedColumn());
+                    
                 }
             }
         });
@@ -437,6 +447,10 @@ public class ServerScreen extends javax.swing.JFrame {
     }//GEN-LAST:event_StartServerButtonActionPerformed
 
     private void showFileStructure(String clientIP) {
+        if(clientIP == null) {
+            JOptionPane.showMessageDialog(null, "You have not select any client");
+        }
+        
         fileStructureTree = new JTree(clientFileStructureContainer.get(clientIP));
 
         JScrollPane scrollPopup = new JScrollPane(fileStructureTree);

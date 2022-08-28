@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JPopupMenu;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -55,6 +56,7 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
     private HashMap<WatchKey, Path> watchKeyContainer;
     private DefaultTableModel tableModel;
     private int counter = 1;
+    
 
     /**
      * Creates new form ClientScreen
@@ -326,12 +328,17 @@ public class ClientScreen extends javax.swing.JFrame implements Runnable {
                             Path fileName = ev.context();
                             
                             if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+                                System.out.println("Create");
                                 sendFolderChangeAction(ActionName.Create, "A new file " + fileName.getFileName() + " was created: ");
                                 writeChangeToTable(ActionName.Create, "A new file " + fileName.getFileName() + " was created: ");
                             } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
+                                System.out.println("Modify");
+
                                 sendFolderChangeAction(ActionName.Modify, "A new file " + fileName.getFileName() + " was modified: ");
                                 writeChangeToTable(ActionName.Modify, "A new file " + fileName.getFileName() + " was modified: ");
                             } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+                                System.out.println("Delete");
+
                                 sendFolderChangeAction(ActionName.Delete, "A new file " + fileName.getFileName() + " was deleted: " );
                                 writeChangeToTable(ActionName.Delete, "A new file " + fileName.getFileName() + " was deleted: " );
                             }
